@@ -1,2 +1,2 @@
 # my-malloc
-Implementing my own Malloc() and Free() with Garbage Collection.
+Implementing my own malloc(), free(), realloc(), and potentially calloc().
