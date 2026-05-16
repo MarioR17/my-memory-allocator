@@ -1,17 +1,15 @@
-#include <stdio.h>
 #include <unistd.h>
 
 #include "heap.h"
 
-void *malloc(size_t num_bytes) {
-        printf("HIIII\n");
-        void *heap_start = sbrk(0);
+FreeNode *free_list_head = NULL;
 
-        heap_start = (void*)-1;
-        printf("HIIII\n");
+void *malloc(size_t num_bytes)
+{
+        write(1, "Using this one\n", 15);
+        void *heap_start = sbrk(num_bytes);
+
         if (heap_start == (void*)-1) {
-                printf("HIIII\n");
-                perror("sbrk");
                 return NULL;
         }
 

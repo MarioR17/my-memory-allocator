@@ -11,6 +11,6 @@ typedef struct FreeListNode {
         struct FreeListNode *prev;
 } FreeNode;
 
-FreeNode *free_list_head = NULL;
+extern FreeNode *free_list_head;
 
 void *malloc(size_t num_bytes);
