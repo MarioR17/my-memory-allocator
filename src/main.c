@@ -3,7 +3,7 @@
 
 int main(void)
 {
-        size_t mem_req = 5;
+        size_t mem_req = 6;
 
         print_str("Memory requested: ");
         print_szt(mem_req);
@@ -13,7 +13,20 @@ int main(void)
 
         if (heap_memory == NULL) {
                 return 1;
+        } else if (heap_memory == (void*)-1) {
+                return 2;
         }
+
+        heap_memory[0] = 'h';
+        heap_memory[1] = 'e';
+        heap_memory[2] = 'l';
+        heap_memory[3] = 'l';
+        heap_memory[4] = 'o';
+        heap_memory[5] = '\0';
+
+        print_str("Value we used with the malloc'd memory: ");
+        print_str(heap_memory);
+        print_str("\n");
 
         return 0;
 }

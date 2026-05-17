@@ -1,5 +1,5 @@
 # TODO
 
--- Make it so if we have insufficient memory we call sbrk
--- Try allocating one chunk of memory and do something with it and make sure it works
--- Ask for memory 
+-- Write function that checks if we have a freeblock available to use instead of sbrk
+-- Add function value check to the if statement in malloc so that if the pointer we get is NULL we go to the os_mem_request()
+-- Ask for memory twice and make sure it works

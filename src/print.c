@@ -33,6 +33,7 @@ void print_szt(size_t size)
 
         print_str(&buff[i]);
 }
+
 void print_ptr(void *ptr)
 {
         unsigned long num = (unsigned long)ptr;
