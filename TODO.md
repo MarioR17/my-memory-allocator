@@ -1,6 +1,5 @@
 # TODO
 
-- [] Make a print_string
-- [] Make a print_size_t
-- [] Make a print pointer
-- [] Use the new print functions to print messages in main and heap for debug
+-- Make it so if we have insufficient memory we call sbrk
+-- Try allocating one chunk of memory and do something with it and make sure it works
+-- Ask for memory 
