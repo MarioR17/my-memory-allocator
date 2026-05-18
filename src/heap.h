@@ -5,6 +5,8 @@
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
 #define PAGE_SIZE get_cached_page_size()
+#define HEADER_SIZE ALIGN(sizeof(struct ChunkHeader))
+#define FREE_NODE_SIZE ALIGN(sizeof(FreeNode))
 
 struct ChunkHeader {
         size_t size;
@@ -20,6 +22,7 @@ extern FreeNode *free_list_head;
 
 void *malloc(size_t num_bytes);
 void *os_mem_request(size_t num_bytes);
+int freeblock_available(size_t num_bytes);
 
 static inline int get_cached_page_size(void)
 {
