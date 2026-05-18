@@ -9,6 +9,7 @@ int main(void)
         print_szt(mem_req);
         print_str("\n");
 
+        print_str("About to malloc for 1st time\n");
         char *heap_memory = (char*)malloc(mem_req);
 
         if (heap_memory == NULL) {
@@ -26,6 +27,14 @@ int main(void)
         print_str("Value we used with the malloc'd memory: ");
         print_str(heap_memory);
         print_str("\n");
+
+        print_str("About to malloc for 2nd time\n");
+        char *heap_mem2 = (char*)malloc(105);
+
+        if (heap_mem2 == NULL) {
+                print_str("Error: Malloc returned a null pointer\n");
+                return 1;
+        }
 
         return 0;
 }

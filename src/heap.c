@@ -11,8 +11,24 @@ FreeNode *free_list_head = NULL;
  */
 int freeblock_available(size_t num_bytes)
 {
-        //FreeNode *curr = free_list_head;
-        num_bytes++;
+        FreeNode *curr = free_list_head;
+        struct ChunkHeader *curr_chunk_header;
+
+        while (curr) {
+                void *header_address = (void*)((char*)curr - HEADER_SIZE);
+                curr_chunk_header = (struct ChunkHeader*)header_address;
+
+                print_str("Size of current chunk looking at: ");
+                print_szt(curr_chunk_header->size);
+                print_str("\n");
+
+                if (curr_chunk_header->size >= num_bytes) {
+                        print_str("Found a suitable chunk. Stopping with success.\n");
+                        return 1;
+                }
+        }
+
+        print_str("Did not find a suitable chunk. Stopping with failure.\n");
 
         return 0;
 }
@@ -47,13 +63,14 @@ void *os_mem_request(size_t num_bytes)
         user_block = (struct ChunkHeader*)page_start;
         user_block->size = num_bytes;
         user_block->is_free = false;
+        user_payload = (void*)((char*)page_start + HEADER_SIZE);
 
+        // Where the free chunk starts
         split_point = (char*)page_start + user_block->size;
 
         free_block = (struct ChunkHeader*)split_point;
         free_block->size = PAGE_SIZE - user_block->size;
         free_block->is_free = true;
-
         free_payload = split_point + HEADER_SIZE;
 
         new_node = (FreeNode*)free_payload;
@@ -64,8 +81,6 @@ void *os_mem_request(size_t num_bytes)
                 free_list_head->prev = new_node;
 
         free_list_head = new_node;
-
-        user_payload = (void*)((char*)page_start + HEADER_SIZE);
 
         return user_payload;
 }
@@ -90,9 +105,10 @@ void *malloc(size_t num_bytes)
         print_szt(total_block_size);
         print_str("\n");
 
-        if (free_list_head == NULL) {
+        if ((free_list_head == NULL) || (freeblock_available(num_bytes) == 0)) {
                 mem_ptr = os_mem_request(total_block_size);
         } else {
+                print_str("We have space available!!!!!\n");
                 mem_ptr = NULL;
         }
 
