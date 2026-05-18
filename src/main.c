@@ -12,10 +12,9 @@ int main(void)
         char *heap_memory = (char*)malloc(mem_req);
 
         if (heap_memory == NULL) {
+                print_str("Error: Malloc returned a null pointer\n");
                 return 1;
-        } else if (heap_memory == (void*)-1) {
-                return 2;
-        }
+        } 
 
         heap_memory[0] = 'h';
         heap_memory[1] = 'e';

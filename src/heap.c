@@ -3,6 +3,12 @@
 
 FreeNode *free_list_head = NULL;
 
+/*
+ * Iterate through the free list, stopping and returning 1 when we see
+ * a chunk that is at least as big as num_bytes.
+ * 
+ * Return 0 otherwise, indicating we don't have such a chunk right now.
+ */
 int freeblock_available(size_t num_bytes)
 {
         //FreeNode *curr = free_list_head;
@@ -11,21 +17,31 @@ int freeblock_available(size_t num_bytes)
         return 0;
 }
 
+/*
+ * Increase the break pointer of the process' heap with the sbrk() syscall.
+ *
+ * Split the new page of memory into two chunks one for the user's
+ * chunk with the header and payload and one for the rest of the memory,
+ * also with its header, which will be added to the free list.
+ *
+ * Return a void pointer to the newly created user's payload 
+ * or a null pointer on failure from sbrk().
+ */
 void *os_mem_request(size_t num_bytes)
 {
         void *page_start; 
-        struct ChunkHeader *user_block;
-        struct ChunkHeader *free_block;
+        void *user_payload;
         char *split_point;
         char *free_payload;
-        void *user_payload;
+        struct ChunkHeader *user_block;
+        struct ChunkHeader *free_block;
         FreeNode *new_node;
 
         page_start = sbrk(PAGE_SIZE);
 
         if (page_start == (void*)-1) {
                 print_str("sbrk failed\n");
-                return (void*)-1;
+                return NULL;
         }
 
         user_block = (struct ChunkHeader*)page_start;
@@ -54,13 +70,21 @@ void *os_mem_request(size_t num_bytes)
         return user_payload;
 }
 
+/*
+ * Return the user with a pointer to heap memory of requested size.
+ *
+ * Could be newly acquired from the OS, or previously used memory that was 
+ * freed and stored in the free list for future delegation.
+ *
+ * Return that pointer on success and a NULL pointer on failure.
+ */
 void *malloc(size_t num_bytes)
 {
         if (num_bytes == 0) return NULL;
 
+        void *mem_ptr;
         size_t aligned_payload_size = ALIGN(num_bytes);
         size_t total_block_size = aligned_payload_size + HEADER_SIZE;
-        void *mem_ptr;
 
         print_str("Total block size: ");
         print_szt(total_block_size);
@@ -69,7 +93,7 @@ void *malloc(size_t num_bytes)
         if (free_list_head == NULL) {
                 mem_ptr = os_mem_request(total_block_size);
         } else {
-                mem_ptr = (void*)-1;
+                mem_ptr = NULL;
         }
 
         print_str("Address of memory pointer: ");
