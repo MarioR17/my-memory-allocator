@@ -3,13 +3,16 @@
 
 FreeNode *free_list_head = NULL;
 
+static void *os_mem_request(size_t num_bytes);
+static int freeblock_available(size_t num_bytes);
+
 /*
  * Iterate through the free list, stopping and returning 1 when we see
  * a chunk that is at least as big as num_bytes.
  * 
  * Return 0 otherwise, indicating we don't have such a chunk right now.
  */
-int freeblock_available(size_t num_bytes)
+static int freeblock_available(size_t num_bytes)
 {
         FreeNode *curr = free_list_head;
         struct ChunkHeader *curr_chunk_header;
@@ -43,7 +46,7 @@ int freeblock_available(size_t num_bytes)
  * Return a void pointer to the newly created user's payload 
  * or a null pointer on failure from sbrk().
  */
-void *os_mem_request(size_t num_bytes)
+static void *os_mem_request(size_t num_bytes)
 {
         void *page_start; 
         void *user_payload;

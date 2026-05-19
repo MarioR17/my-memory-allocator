@@ -1,3 +1,6 @@
+#ifndef HEAP_H
+#define HEAP_H
+
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -21,8 +24,6 @@ typedef struct FreeListNode {
 extern FreeNode *free_list_head;
 
 void *malloc(size_t num_bytes);
-void *os_mem_request(size_t num_bytes);
-int freeblock_available(size_t num_bytes);
 
 static inline int get_cached_page_size(void)
 {
@@ -33,3 +34,5 @@ static inline int get_cached_page_size(void)
 
         return cached_page_size;
 }
+
+#endif /* HEAP_H */

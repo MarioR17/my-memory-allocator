@@ -1,5 +1,6 @@
 # TODO
 
--- Write function that checks if we have a freeblock available to use instead of sbrk
--- Add function value check to the if statement in malloc so that if the pointer we get is NULL we go to the os_mem_request()
--- Ask for memory twice and make sure it works
+-- Write a function to use free list memory if we have any instead of new heap memory
+-- Use the new function inside of malloc and make sure it works
+-- Write free to put memory back into the free list
+-- Write calloc which will be a malloc wrapper than zeroes the data received before delegating it to the user
