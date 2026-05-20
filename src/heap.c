@@ -5,6 +5,101 @@ FreeNode *free_list_head = NULL;
 
 static void *os_mem_request(size_t num_bytes);
 static int freeblock_available(size_t num_bytes);
+static void *get_chunk_from_freelist(size_t num_bytes);
+static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes);
+
+/*
+ * Take in a chunk and split it into a user chunk of num_bytes size
+ * and a free chunk of the left over amount of bytes.
+ *
+ * Return the void pointer to the payload of the user chunk.
+ */
+static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes)
+{
+        void *user_payload;
+        char *split_point;
+        char *free_payload;
+        struct ChunkHeader *user_block;
+        struct ChunkHeader *free_block;
+        FreeNode *new_node;
+        size_t original_chunk_size;
+
+        original_chunk_size = chunk->size;
+
+        user_block = chunk;
+        user_block->size = num_bytes;
+        user_block->is_free = false;
+        user_payload = (void*)((char*)chunk + HEADER_SIZE);
+
+        // Where the free chunk starts
+        split_point = (char*)chunk + HEADER_SIZE + user_block->size;
+
+        free_block = (struct ChunkHeader*)split_point;
+        free_block->size =  original_chunk_size - HEADER_SIZE - user_block->size;
+        free_block->is_free = true;
+        free_payload = split_point + HEADER_SIZE;
+
+        new_node = (FreeNode*)free_payload;
+        new_node->next = free_list_head;
+        new_node->prev = NULL;
+
+        if (free_list_head)
+                free_list_head->prev = new_node;
+
+        free_list_head = new_node;
+
+        return user_payload;
+}
+
+/*
+ * Iterate through the free list and select a chunk using the best fit algorithm.
+ *
+ * If there is space left over, split the chunk into the requested size and
+ * the chunk left over.
+ *
+ * Update the free list to not include the user chunk and do include the 
+ * left over chunk from the split that is free.
+ *
+ * Return a void pointer to the payload of the user requested chunk.
+ */
+static void *get_chunk_from_freelist(size_t num_bytes)
+{
+        FreeNode *best = NULL;
+        FreeNode *curr = free_list_head;
+        struct ChunkHeader *curr_chunk_header;
+        struct ChunkHeader *best_chunk_header;
+
+        while (curr) {
+                void *curr_address = (void*)((char*)curr - HEADER_SIZE);
+                curr_chunk_header = (struct ChunkHeader*)curr_address;
+
+                if (curr_chunk_header->size < num_bytes) {
+                        curr = curr->next;
+                        continue;
+                }
+
+                if (curr_chunk_header->size == num_bytes) {
+                        best = curr;
+                        break;
+                }
+
+                if (best) {
+                        void *best_address = (void*)((char*)best - HEADER_SIZE);
+                        best_chunk_header = (struct ChunkHeader*)best_address;
+
+                        size_t best_diff = best_chunk_header->size - num_bytes; 
+                        size_t curr_diff = curr_chunk_header->size - num_bytes;
+
+                        if (curr_diff < best_diff) best = curr;
+                } else {
+                        best = curr;
+                }
+
+                curr = curr->next;
+        }
+
+        return split_chunk(best_chunk_header, num_bytes);
+}
 
 /*
  * Iterate through the free list, stopping and returning 1 when we see
@@ -21,17 +116,12 @@ static int freeblock_available(size_t num_bytes)
                 void *header_address = (void*)((char*)curr - HEADER_SIZE);
                 curr_chunk_header = (struct ChunkHeader*)header_address;
 
-                print_str("Size of current chunk looking at: ");
-                print_szt(curr_chunk_header->size);
-                print_str("\n");
-
                 if (curr_chunk_header->size >= num_bytes) {
-                        print_str("Found a suitable chunk. Stopping with success.\n");
                         return 1;
                 }
-        }
 
-        print_str("Did not find a suitable chunk. Stopping with failure.\n");
+                curr = curr->next;
+        }
 
         return 0;
 }
@@ -49,12 +139,6 @@ static int freeblock_available(size_t num_bytes)
 static void *os_mem_request(size_t num_bytes)
 {
         void *page_start; 
-        void *user_payload;
-        char *split_point;
-        char *free_payload;
-        struct ChunkHeader *user_block;
-        struct ChunkHeader *free_block;
-        FreeNode *new_node;
 
         page_start = sbrk(PAGE_SIZE);
 
@@ -63,29 +147,7 @@ static void *os_mem_request(size_t num_bytes)
                 return NULL;
         }
 
-        user_block = (struct ChunkHeader*)page_start;
-        user_block->size = num_bytes;
-        user_block->is_free = false;
-        user_payload = (void*)((char*)page_start + HEADER_SIZE);
-
-        // Where the free chunk starts
-        split_point = (char*)page_start + user_block->size;
-
-        free_block = (struct ChunkHeader*)split_point;
-        free_block->size = PAGE_SIZE - user_block->size;
-        free_block->is_free = true;
-        free_payload = split_point + HEADER_SIZE;
-
-        new_node = (FreeNode*)free_payload;
-        new_node->next = free_list_head;
-        new_node->prev = NULL;
-
-        if (free_list_head)
-                free_list_head->prev = new_node;
-
-        free_list_head = new_node;
-
-        return user_payload;
+        return split_chunk(page_start, num_bytes); 
 }
 
 /*
@@ -104,20 +166,14 @@ void *malloc(size_t num_bytes)
         size_t aligned_payload_size = ALIGN(num_bytes);
         size_t total_block_size = aligned_payload_size + HEADER_SIZE;
 
-        print_str("Total block size: ");
-        print_szt(total_block_size);
-        print_str("\n");
-
-        if ((free_list_head == NULL) || (freeblock_available(num_bytes) == 0)) {
-                mem_ptr = os_mem_request(total_block_size);
+        if ((free_list_head == NULL) || 
+        (freeblock_available(total_block_size) == 0)) {
+                mem_ptr = os_mem_request(aligned_payload_size);
+                if (mem_ptr) print_str("Got memory from new heap increase\n");
         } else {
-                print_str("We have space available!!!!!\n");
-                mem_ptr = NULL;
+                mem_ptr = get_chunk_from_freelist(aligned_payload_size);
+                if (mem_ptr) print_str("Got memory from free list chunk\n");
         }
-
-        print_str("Address of memory pointer: ");
-        print_ptr(mem_ptr);
-        print_str("\n");
 
         return mem_ptr;
 }
