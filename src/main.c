@@ -5,7 +5,6 @@ int main(void)
 {
         size_t mem_req = 6;
 
-
         print_str("About to malloc for 1st time\n");
 
         print_str("Memory requested: ");
@@ -69,6 +68,44 @@ int main(void)
 
         print_str("third malloc memory address: ");
         print_ptr(heap_mem3);
+        print_str("\n");
+
+        print_str("About to calloc for 1st time (4th alloc)\n");
+        size_t num_items = 1000;
+        size_t items_size = sizeof(int);
+
+        print_str("Memory requested: ");
+        print_szt(num_items * items_size);
+        print_str("\n");
+
+        char *heap_mem4 = (char*)calloc(num_items, items_size);
+
+        if (heap_mem4 == NULL) {
+                print_str("Error: Calloc returned a null pointer\n");
+                return 1;
+        }
+
+        print_str("first calloc (4th alloc)  memory address: ");
+        print_ptr(heap_mem4);
+        print_str("\n");
+
+        print_str("About to calloc for 2nd time (5th alloc)\n");
+        num_items = 10;
+        items_size = sizeof(double);
+
+        print_str("Memory requested: ");
+        print_szt(num_items * items_size);
+        print_str("\n");
+
+        char *heap_mem5 = (char*)calloc(num_items, items_size);
+
+        if (heap_mem5 == NULL) {
+                print_str("Error: Calloc returned a null pointer\n");
+                return 1;
+        }
+
+        print_str("second calloc (5th alloc)  memory address: ");
+        print_ptr(heap_mem5);
         print_str("\n");
 
         return 0;

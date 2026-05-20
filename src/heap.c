@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "heap.h"
 #include "print.h"
 
@@ -7,6 +9,28 @@ static void *os_mem_request(size_t num_bytes);
 static int freeblock_available(size_t num_bytes);
 static void *get_chunk_from_freelist(size_t num_bytes);
 static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes);
+static void remove_from_freelist(FreeNode *node);
+
+
+/*
+ * Remove a given node from the freelist and adjust the list accordingly.
+ */
+static void remove_from_freelist(FreeNode *node)
+{
+        if (!node) return;
+
+        if (node->prev) {
+                node->prev->next = node->next;
+        } else {
+                free_list_head = node->next;
+        }
+
+        if (node->next)
+                node->next->prev = node->prev;
+
+        node->next = NULL;
+        node->prev = NULL;
+}
 
 /*
  * Take in a chunk and split it into a user chunk of num_bytes size
@@ -66,8 +90,9 @@ static void *get_chunk_from_freelist(size_t num_bytes)
 {
         FreeNode *best = NULL;
         FreeNode *curr = free_list_head;
+        void *final_best_address;
         struct ChunkHeader *curr_chunk_header;
-        struct ChunkHeader *best_chunk_header;
+        struct ChunkHeader *final_best_header;
 
         while (curr) {
                 void *curr_address = (void*)((char*)curr - HEADER_SIZE);
@@ -85,9 +110,10 @@ static void *get_chunk_from_freelist(size_t num_bytes)
 
                 if (best) {
                         void *best_address = (void*)((char*)best - HEADER_SIZE);
-                        best_chunk_header = (struct ChunkHeader*)best_address;
+                        struct ChunkHeader *temp_best_header = 
+                                (struct ChunkHeader*)best_address;
 
-                        size_t best_diff = best_chunk_header->size - num_bytes; 
+                        size_t best_diff = temp_best_header->size - num_bytes; 
                         size_t curr_diff = curr_chunk_header->size - num_bytes;
 
                         if (curr_diff < best_diff) best = curr;
@@ -98,7 +124,14 @@ static void *get_chunk_from_freelist(size_t num_bytes)
                 curr = curr->next;
         }
 
-        return split_chunk(best_chunk_header, num_bytes);
+        if (!best) return NULL;
+
+        remove_from_freelist(best);
+
+        final_best_address = (void*)((char*)best - HEADER_SIZE);
+        final_best_header = (struct ChunkHeader*)final_best_address;
+
+        return split_chunk(final_best_header, num_bytes);
 }
 
 /*
@@ -179,4 +212,33 @@ void *malloc(size_t num_bytes)
         }
 
         return mem_ptr;
+}
+
+/*
+ * Return the user with heap memory of the requested size just like malloc
+ * except this time each byte is zero'd out guaranteed by the time the user
+ * receives the pointer to the memory
+ */
+void *calloc(size_t num_items, size_t items_size)
+{
+        if (num_items == 0 || items_size == 0) return NULL;
+        if (items_size > SIZE_MAX / num_items) return NULL;
+
+        void *user_ptr;
+        char *byte_array;
+        size_t total_aligned_size;
+
+        total_aligned_size = ALIGN(num_items * items_size);
+
+        user_ptr = malloc(total_aligned_size);
+
+        if (user_ptr == NULL) return NULL;
+
+        byte_array = (char*)user_ptr;
+
+        for (size_t i = 0; i < total_aligned_size; i++) {
+                byte_array[i] = 0;
+        }
+
+        return user_ptr;
 }
