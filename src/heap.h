@@ -25,6 +25,7 @@ extern FreeNode *free_list_head;
 
 void *malloc(size_t num_bytes);
 void *calloc(size_t num_items, size_t items_size);
+void free(void *ptr);
 
 static inline int get_cached_page_size(void)
 {

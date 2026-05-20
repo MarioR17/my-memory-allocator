@@ -1,4 +1,4 @@
 # TODO
 
--- Write free to put memory back into the free list
+-- Implement coalescing of free blocks
 -- Write realloc

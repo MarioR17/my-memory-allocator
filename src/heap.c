@@ -11,7 +11,6 @@ static void *get_chunk_from_freelist(size_t num_bytes);
 static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes);
 static void remove_from_freelist(FreeNode *node);
 
-
 /*
  * Remove a given node from the freelist and adjust the list accordingly.
  */
@@ -241,4 +240,28 @@ void *calloc(size_t num_items, size_t items_size)
         }
 
         return user_ptr;
+}
+
+/*
+ * Free the given heap memory by marking it free and putting it
+ * into the freelist or do nothing if given a NULL pointer.
+ */
+void free(void *ptr)
+{
+        if (!ptr) return;
+
+        struct ChunkHeader *header;
+        FreeNode *new_node;
+
+        header = (struct ChunkHeader*)((char*)ptr - HEADER_SIZE);
+        header->is_free = true;
+
+        new_node = (FreeNode *)ptr;
+        new_node->next = free_list_head;
+        new_node->prev = NULL;
+
+        if (free_list_head)
+                free_list_head->prev = new_node;
+
+        free_list_head = new_node;
 }
