@@ -22,9 +22,9 @@ static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes)
         struct ChunkHeader *user_block;
         struct ChunkHeader *free_block;
         FreeNode *new_node;
-        size_t original_chunk_size;
+        size_t original_payload_size;
 
-        original_chunk_size = chunk->size;
+        original_payload_size = chunk->size;
 
         user_block = chunk;
         user_block->size = num_bytes;
@@ -35,7 +35,7 @@ static void *split_chunk(struct ChunkHeader *chunk, size_t num_bytes)
         split_point = (char*)chunk + HEADER_SIZE + user_block->size;
 
         free_block = (struct ChunkHeader*)split_point;
-        free_block->size =  original_chunk_size - HEADER_SIZE - user_block->size;
+        free_block->size =  original_payload_size - HEADER_SIZE - user_block->size;
         free_block->is_free = true;
         free_payload = split_point + HEADER_SIZE;
 
@@ -147,7 +147,11 @@ static void *os_mem_request(size_t num_bytes)
                 return NULL;
         }
 
-        return split_chunk(page_start, num_bytes); 
+        struct ChunkHeader *new_page = (struct ChunkHeader*)page_start;
+        new_page->size = PAGE_SIZE - HEADER_SIZE;
+        new_page->is_free = true;
+
+        return split_chunk(new_page, num_bytes); 
 }
 
 /*
@@ -164,10 +168,9 @@ void *malloc(size_t num_bytes)
 
         void *mem_ptr;
         size_t aligned_payload_size = ALIGN(num_bytes);
-        size_t total_block_size = aligned_payload_size + HEADER_SIZE;
 
         if ((free_list_head == NULL) || 
-        (freeblock_available(total_block_size) == 0)) {
+        (freeblock_available(aligned_payload_size) == 0)) {
                 mem_ptr = os_mem_request(aligned_payload_size);
                 if (mem_ptr) print_str("Got memory from new heap increase\n");
         } else {
